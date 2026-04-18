@@ -1,0 +1,153 @@
+SUMMARY="Assembler, linker and binary tools for target ${effectiveTargetMachineTriple}"
+HOMEPAGE="http://www.gnu.org/software/binutils"
+srcGitRev="ab0f66e995971d3e7c6c123daaab860378c5bbb1"
+SOURCE_URI="https://github.com/haiku/buildtools/archive/$srcGitRev.tar.gz"
+SOURCE_FILENAME="$portVersionedName.tar.gz"
+CHECKSUM_SHA256="ffcc82a41c6ee3e7bac65d9edb9984fa4a677b8569d96ccad797640bfefb58ad"
+REVISION="3"
+LICENSE="
+	GNU GPL v2
+	GNU LGPL v2
+	"
+COPYRIGHT="1988-2006 Free Software Foundation, Inc."
+
+ARCHITECTURES="x86_gcc2 !x86"
+SECONDARY_ARCHITECTURES="x86_gcc2"
+
+PROVIDES="
+	binutils_bootstrap$secondaryArchSuffix = $portVersion compat >= 2.17
+	binutils$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:addr2line$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:ar$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:as$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:gprof$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:ld$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:nm$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:objcopy$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:objdump$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:ranlib$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:readelf$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:size$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:strings$secondaryArchSuffix = $portVersion compat >= 2.17
+	cmd:strip$secondaryArchSuffix = $portVersion compat >= 2.17
+	"
+
+REQUIRES="
+	haiku$secondaryArchSuffix
+	"
+
+BUILD_REQUIRES="
+	"
+
+BUILD_PREREQUIRES="
+	haiku${secondaryArchSuffix}_devel
+	binutils_cross_${effectiveTargetArchitecture}
+	gcc_cross_${effectiveTargetArchitecture}
+	cmd:autoconf
+	cmd:flex
+	cmd:gcc
+	cmd:ld
+	cmd:make
+	cmd:makeinfo
+	cmd:sed
+	cmd:tar
+	"
+
+SOURCE_DIR="buildtools-$srcGitRev/legacy/binutils"
+
+BUILD_PACKAGE_ACTIVATION_PHASE=INSTALL
+
+sourceDir=$(pwd)
+relativeInstallDir="develop/tools$secondaryArchSubDir"
+installDir="$prefix/$relativeInstallDir"
+objectsDir=$(pwd)/../${portVersionedName}-obj
+
+
+PATCHES="binutils_bootstrap-2.17_2013_04_21.patchset"
+
+BUILD()
+{
+	rm -rf $objectsDir
+
+	# Touch all *.info files, as newer texinfos don't like their format
+	(cd $sourceDir; find . -name \*.info | xargs touch)
+
+	mkdir -p $objectsDir
+	cd $objectsDir
+
+	CFLAGS=-O2 CXXFLAGS=-O2 runConfigure --omit-dirs "docDir dataRootDir" \
+		"$sourceDir/configure" \
+		--build=$buildMachineTriple --host=$effectiveTargetMachineTriple \
+		--target=$effectiveTargetMachineTriple \
+		--exec-prefix=$installDir \
+		--includedir=$includeDir/binutils \
+		--disable-nls --disable-shared --disable-werror
+	make
+}
+
+INSTALL()
+{
+	cd $objectsDir
+
+	make DESTDIR=$installDestDir install
+
+	# Remove the development libraries and headers. Nobody uses those anyway.
+	rm -r $installDestDir$libDir
+	rm -r $installDestDir$developDir/headers
+
+	# no info documentation
+	rm -r $installDestDir$infoDir
+
+	# drop c++filt, as gcc2 provides its own
+	rm $installDestDir$binDir/c++filt
+
+	### Strip #################################################
+
+	echo "Strip debug info"
+
+	cd $installDestDir$prefix
+	strip --strip-debug $installDestDir$binDir/*
+
+	### Symlinks ##############################################
+
+	echo "Creating required symlinks"
+
+	# There are copies of a subset of the commands below installDir. We
+	# overwrite those with symlinks to the ones in binDir.
+	for file in $installDestDir$installDir/i586-pc-haiku/bin/*; do
+		symlinkRelative -sfn $installDestDir$binDir/$(basename $file) $file
+	done
+
+	### Cleanup #################################################
+
+	echo "Cleanup"
+
+	# delete man pages for commands that we aren't including
+	cd $installDestDir$manDir
+	for cmd in c++filt dlltool nlmconv windmc windres; do
+		rm -f man1/$cmd.1
+	done
+}
+
+DESCRIPTION="
+	The GNU Binutils are a collection of binary tools. The main ones are:
+
+	    ld - the GNU linker.
+	    as - the GNU assembler.
+
+	But they also include:
+
+	    addr2line - Converts addresses into filenames and line numbers.
+	    ar - A utility for creating, modifying and extracting from archives.
+	    c++filt - Filter to demangle encoded C++ symbols.
+	    nm - Lists symbols from object files.
+	    objcopy - Copys and translates object files.
+	    objdump - Displays information from object files.
+	    ranlib - Generates an index to the contents of an archive.
+	    readelf - Displays information from any ELF format object file.
+	    size - Lists the section sizes of an object or archive file.
+	    strings - Lists printable strings from files.
+	    strip - Discards symbols.
+
+	The tools of this package can be used for cross-builds to $effectiveTargetMachineTriple.
+	"

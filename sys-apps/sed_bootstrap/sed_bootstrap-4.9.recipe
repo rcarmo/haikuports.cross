@@ -1,0 +1,52 @@
+SUMMARY="A stream editor"
+DESCRIPTION="
+	Sed is a stream editor, i.e. it can be used to perform basic text
+	transformations on an input stream (a file or input from a pipeline).
+
+	While in some ways similar to an editor which permits scripted edits
+	(such as ed), sed works by making only one pass over the input(s), and
+	is consequently more efficient. But it is sed's ability to filter text
+	in a pipeline which particularly distinguishes it from other types of
+	editors.
+	"
+LICENSE="GNU GPL v3"
+COPYRIGHT="1989-2009 Free Software Foundation, Inc."
+HOMEPAGE="http://www.gnu.org/software/sed"
+SOURCE_URI="http://ftp.gnu.org/gnu/sed/sed-$portVersion.tar.xz"
+CHECKSUM_SHA256="6e226b732e1cd739464ad6862bd1a1aba42d7982922da7a53519631d24975181"
+REVISION="1"
+ARCHITECTURES="x86_gcc2 x86 x86_64 ppc arm arm64 riscv64 sparc m68k"
+PATCHES="sed_bootstrap-$portVersion.patchset"
+
+PROVIDES="
+	sed_bootstrap = $portVersion compat >= 4
+	sed = $portVersion compat >= 4
+	cmd:sed = $portVersion compat >= 4
+	"
+REQUIRES="
+	"
+BUILD_REQUIRES="
+	"
+BUILD_PREREQUIRES="
+	haiku_devel
+	binutils_cross_$targetArchitecture
+	gcc_cross_$targetArchitecture
+	cmd:make
+	cmd:sed
+	"
+
+SOURCE_DIR="sed-$portVersion"
+
+BUILD()
+{
+	runConfigure ./configure \
+		--build=$buildMachineTriple --host=$targetMachineTriple \
+		--enable-regex-tests --without-included-regex \
+		--disable-rpath --with-gnu-ld
+	make $jobArgs AR=${targetMachineTriple}-ar
+}
+
+INSTALL()
+{
+	make DESTDIR=$installDestDir install
+}

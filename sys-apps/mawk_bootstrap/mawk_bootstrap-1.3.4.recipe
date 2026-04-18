@@ -1,0 +1,63 @@
+SUMMARY="A pattern scanning and processing language" 
+DESCRIPTION="
+If you are like many computer users, you would frequently like to make \ 
+changes in various text files wherever certain patterns appear, or \
+extract data from parts of certain lines while discarding the rest. To \
+write a program to do this in a language such as C or Pascal is a \
+time-consuming inconvenience that may take many lines of code. The job \
+is easy with awk.
+
+The awk utility interprets a special-purpose programming language that \
+makes it possible to handle simple data-reformatting jobs with just a \
+few lines of code.
+"
+HOMEPAGE="http://invisible-island.net/mawk" 
+SOURCE_DIR="mawk-$portVersion-20171017"
+SOURCE_URI="ftp://ftp.invisible-island.net/mawk/$SOURCE_DIR.tgz"
+CHECKSUM_SHA256="db17115d1ed18ed1607c8b93291db9ccd4fe5e0f30d2928c3c5d127b23ec9e5b"
+SOURCE_FILENAME="mawk-$portVersion.tar.gz"
+REVISION="1"
+LICENSE="GNU GPL v2"
+COPYRIGHT="2009-2013,2014 by Thomas E. Dickey"
+ARCHITECTURES="x86_gcc2 x86 x86_64 ppc arm arm64 riscv64 sparc m68k"
+
+PROVIDES="
+	mawk_bootstrap = $portVersion compat >= 1
+	mawk = $portVersion compat >= 1
+	cmd:awk = $portVersion compat >= 1
+	cmd:mawk = $portVersion compat >= 1
+	"
+REQUIRES="
+	haiku
+	"
+BUILD_REQUIRES="
+	"
+BUILD_PREREQUIRES="
+	haiku_devel
+	cmd:aclocal
+	cmd:autoconf
+	cmd:automake
+	cmd:gcc
+	cmd:ld
+	cmd:libtoolize
+	cmd:make
+	cmd:makeinfo
+	cmd:sed
+	"
+
+BUILD()
+{
+	./configure --prefix=$installDestDir$prefix --mandir=$installDestDir$manDir
+	make $jobArgs
+}
+
+INSTALL()
+{
+	make install
+	ln -s $installDestDir$binDir/mawk $installDestDir$binDir/awk
+}
+
+TEST()
+{
+	make check
+}

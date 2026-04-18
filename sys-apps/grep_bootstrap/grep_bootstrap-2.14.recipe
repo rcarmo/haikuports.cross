@@ -1,0 +1,64 @@
+SUMMARY="GNU regular expression matcher"
+DESCRIPTION="The grep command searches one or more input files for lines containing a match to a specified pattern. By default, grep prints the matching lines."
+HOMEPAGE="http://www.gnu.org/software/grep/"
+LICENSE="GNU GPL v3"
+COPYRIGHT="1992-2012 Free Software Foundation, Inc."
+SOURCE_URI="https://ftp.gnu.org/gnu/grep/grep-2.14.tar.xz"
+CHECKSUM_SHA256="e70e801d4fbb16e761654a58ae48bf5020621c95c8e35bd864742577685872e1"
+REVISION="1"
+ARCHITECTURES="x86_gcc2 x86 x86_64 ppc arm arm64 riscv64 sparc m68k"
+
+PATCHES="grep_bootstrap-2.14.patchset"
+
+if [[ $effectiveTargetArchitecture == 'x86_gcc2' ]]; then
+	PATCHES="$PATCHES
+		grep_bootstrap-2.14-x86_gcc2.patchset"
+fi
+
+
+PROVIDES="
+	grep_bootstrap = $portVersion compat >= 2
+	grep = $portVersion compat >= 2
+	cmd:egrep = $portVersion compat >= 2
+	cmd:fgrep = $portVersion compat >= 2
+	cmd:grep = $portVersion compat >= 2
+	"
+REQUIRES="
+	haiku
+	"
+BUILD_REQUIRES="
+	"
+BUILD_PREREQUIRES="
+	haiku_devel
+	binutils_cross_$targetArchitecture
+	gcc_cross_$targetArchitecture
+	cmd:aclocal
+	cmd:autoconf
+	cmd:automake
+	cmd:libtoolize
+	cmd:make
+	"
+
+SOURCE_DIR="grep-$portVersion"
+
+BUILD()
+{
+	rm -f m4/iconv* m4/gettext*
+
+	autoreconf -i
+	runConfigure ./configure \
+		--build=$buildMachineTriple --host=$targetMachineTriple \
+		--disable-perl-regexp --disable-nls
+	make $jobArgs
+}
+
+INSTALL()
+{
+	make DESTDIR=$installDestDir install
+
+	$targetMachineTriple-strip $installDestDir$binDir/*
+
+	rm $installDestDir$libDir/charset.alias
+	rmdir $installDestDir$libDir
+	rm -r $installDestDir$infoDir
+}

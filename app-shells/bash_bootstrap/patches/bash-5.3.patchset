@@ -1,0 +1,100 @@
+From b76e31817f84305fcfdefea04193e3dd88ff94cb Mon Sep 17 00:00:00 2001
+From: PulkoMandy <pulkomandy@pulkomandy.tk>
+Date: Sat, 22 Nov 2025 11:40:19 +0100
+Subject: [PATCH 1/3] Assume the cross-compiler provides bool
+
+This cannot be checked by the configure script so it needs to be
+manually set. Since gcc defaults to C23 now, bool is a keyword, and so
+we should use that mode.
+---
+ buildconf.h.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/buildconf.h.in b/buildconf.h.in
+index b99d26c..24a6ed3 100644
+--- a/buildconf.h.in
++++ b/buildconf.h.in
+@@ -39,7 +39,7 @@
+ #define HAVE_RENAME
+ 
+ /* defining this implies a C23 environment */
+-#undef HAVE_C_BOOL
++#define HAVE_C_BOOL 1
+ 
+ /* Don't assume this; it's from C99; let syntax.h define a replacement */
+ /* #undef HAVE_ISBLANK */
+-- 
+2.50.1 (Apple Git-155)
+
+
+From e013bf8389b1439725bbebaeea35cb9376d00faa Mon Sep 17 00:00:00 2001
+From: PulkoMandy <pulkomandy@pulkomandy.tk>
+Date: Sat, 22 Nov 2025 11:41:19 +0100
+Subject: [PATCH 2/3] Disable some non-existing constants in Haiku
+
+The getconf implementation in bash checks for some constants existence,
+but not all of them.
+---
+ examples/loadables/getconf.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/examples/loadables/getconf.c b/examples/loadables/getconf.c
+index 3981250..045733e 100644
+--- a/examples/loadables/getconf.c
++++ b/examples/loadables/getconf.c
+@@ -286,7 +286,9 @@ static const struct conf vars[] =
+ #else
+     { "_POSIX_ARG_MAX", _POSIX_ARG_MAX, CONSTANT },
+ #endif
++#ifdef _SC_ASYNCHRONOUS_IO
+     { "_POSIX_ASYNCHRONOUS_IO", _SC_ASYNCHRONOUS_IO, SYSCONF },
++#endif
+ #ifdef _SC_CHILD_MAX
+     { "_POSIX_CHILD_MAX", _SC_CHILD_MAX, SYSCONF },
+ #else
+@@ -838,8 +840,12 @@ static const struct conf vars[] =
+     { "POSIX2_PBS_MESSAGE", _SC_2_PBS_MESSAGE, SYSCONF },
+     { "SYMLOOP_MAX", _SC_SYMLOOP_MAX, SYSCONF },
+     { "STREAM_MAX", _SC_STREAM_MAX, SYSCONF },
++#ifdef _SC_AIO_LISTIO_MAX
+     { "AIO_LISTIO_MAX", _SC_AIO_LISTIO_MAX, SYSCONF },
++#endif
++#ifdef _SC_AIO_MAX
+     { "AIO_MAX", _SC_AIO_MAX, SYSCONF },
++#endif
+ #ifdef _SC_AIO_PRIO_DELTA_MAX
+     { "AIO_PRIO_DELTA_MAX", _SC_AIO_PRIO_DELTA_MAX, SYSCONF },
+ #endif
+-- 
+2.50.1 (Apple Git-155)
+
+
+From ab4d382917bbe488065df42cd85bbf4b0b319969 Mon Sep 17 00:00:00 2001
+From: Sam Roberts <sam@smrobtzz.dev>
+Date: Mon, 30 Mar 2026 15:19:53 -0400
+Subject: [PATCH 3/3] aclocal.m4: never define GETCWD_BROKEN
+
+I have no idea why, but this gets defined despite
+bash_cv_getcwd_malloc being forced to yes
+---
+ aclocal.m4 | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/aclocal.m4 b/aclocal.m4
+index 14ee5d0..a11de57 100644
+--- a/aclocal.m4
++++ b/aclocal.m4
+@@ -673,10 +673,6 @@ main()
+     bash_cv_getcwd_malloc=yes]
+ )])
+ AC_MSG_RESULT($bash_cv_getcwd_malloc)
+-if test $bash_cv_getcwd_malloc = no; then
+-AC_DEFINE(GETCWD_BROKEN)
+-AC_LIBOBJ(getcwd)
+-fi
+ ])
+ 
+ dnl
+-- 
+2.50.1 (Apple Git-155)
+
